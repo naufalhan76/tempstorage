@@ -419,26 +419,73 @@
                     </div>
                     
                     <h4>Request</h4>
-                    <p>Send files as <code>multipart/form-data</code>:</p>
+                    <p>Send files as <code>multipart/form-data</code> with optional parameters:</p>
                     
+                    <h5>Parameters</h5>
+                    <table class="pixel-table">
+                        <thead>
+                            <tr>
+                                <th>Parameter</th>
+                                <th>Type</th>
+                                <th>Required</th>
+                                <th>Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><code>file</code></td>
+                                <td>File</td>
+                                <td>✅ Yes</td>
+                                <td>The file to upload (max 200MB)</td>
+                            </tr>
+                            <tr>
+                                <td><code>ttl</code></td>
+                                <td>String</td>
+                                <td>❌ No</td>
+                                <td>Expiration time: <code>30m</code>, <code>1h</code>, <code>3h</code>, <code>6h</code>, <code>24h</code>, <code>7d</code><br>Default: <code>30m</code></td>
+                            </tr>
+                            <tr>
+                                <td><code>fileName</code></td>
+                                <td>String</td>
+                                <td>❌ No</td>
+                                <td>Custom filename (will preserve original extension if not provided)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    
+                    <h5>Examples</h5>
+                    <p><strong>Basic Upload:</strong></p>
 <div class="pixel-code">curl -X POST https://mabox.tech/upload \
-  -F "files=@document.pdf" \
-  -F "files=@image.jpg"</div>
+  -F "file=@document.pdf"</div>
+
+                    <p><strong>Upload with TTL:</strong></p>
+<div class="pixel-code">curl -X POST https://mabox.tech/upload \
+  -F "file=@document.pdf" \
+  -F "ttl=24h"</div>
+
+                    <p><strong>Upload with Custom Filename:</strong></p>
+<div class="pixel-code">curl -X POST https://mabox.tech/upload \
+  -F "file=@document.pdf" \
+  -F "fileName=my-document"</div>
+
+                    <p><strong>Upload with All Parameters:</strong></p>
+<div class="pixel-code">curl -X POST https://mabox.tech/upload \
+  -F "file=@document.pdf" \
+  -F "ttl=7d" \
+  -F "fileName=important-document.pdf"</div>
 
                     <h4>Response</h4>
 <div class="pixel-code">{
   "success": true,
-  "files": [
-    {
-      "id": "abc123",
-      "filename": "document.pdf",
-      "originalname": "document.pdf",
-      "size": 1024000,
-      "uploadDate": "2025-09-18T10:30:00.000Z",
-      "expiryDate": "2025-09-19T10:30:00.000Z",
-      "downloadUrl": "/files/abc123/document.pdf"
-    }
-  ]
+  "message": "File uploaded successfully",
+  "data": {
+    "fileName": "document.pdf",
+    "originalName": "document.pdf", 
+    "fileSize": 1024000,
+    "downloadUrl": "https://mabox.tech/files/document.pdf",
+    "expiresAt": "2025-09-19T10:30:00.000Z",
+    "ttl": "30m"
+  }
 }</div>
                 </div>
             </div>
@@ -452,11 +499,11 @@
                 <div class="pixel-card-content">
                     <div class="pixel-endpoint">
                         <span class="pixel-method get">GET</span>
-                        <code>/files/:id/:filename</code>
+                        <code>/files/:filename</code>
                     </div>
                     
                     <h4>Request</h4>
-<div class="pixel-code">curl -X GET https://mabox.tech/files/abc123/document.pdf \
+<div class="pixel-code">curl -X GET https://mabox.tech/files/document.pdf \
   -o downloaded_document.pdf</div>
 
                     <h4>Response</h4>
@@ -478,80 +525,22 @@
                 <div class="pixel-card-content">
                     <div class="pixel-endpoint">
                         <span class="pixel-method get">GET</span>
-                        <code>/files/:id/info</code>
+                        <code>/info/:filename</code>
                     </div>
                     
                     <h4>Request</h4>
-<div class="pixel-code">curl -X GET https://mabox.tech/files/abc123/info</div>
+<div class="pixel-code">curl -X GET https://mabox.tech/info/document.pdf</div>
 
                     <h4>Response</h4>
 <div class="pixel-code">{
   "success": true,
-  "file": {
-    "id": "abc123",
-    "filename": "document.pdf",
-    "originalname": "document.pdf",
+  "data": {
+    "originalName": "document.pdf",
     "size": 1024000,
-    "uploadDate": "2025-09-18T10:30:00.000Z",
-    "expiryDate": "2025-09-19T10:30:00.000Z",
-    "downloadUrl": "/files/abc123/document.pdf"
+    "uploadedAt": "2025-09-18T10:30:00.000Z",
+    "expiresAt": "2025-09-19T10:30:00.000Z",
+    "mimetype": "application/pdf"
   }
-}</div>
-                </div>
-            </div>
-
-            <!-- List Files -->
-            <div class="pixel-card">
-                <div class="pixel-card-header">
-                    <h3>📋 List All Files</h3>
-                    <p>Get a list of all uploaded files (for development/testing)</p>
-                </div>
-                <div class="pixel-card-content">
-                    <div class="pixel-endpoint">
-                        <span class="pixel-method get">GET</span>
-                        <code>/files</code>
-                    </div>
-                    
-                    <h4>Request</h4>
-<div class="pixel-code">curl -X GET https://mabox.tech/files</div>
-
-                    <h4>Response</h4>
-<div class="pixel-code">{
-  "success": true,
-  "files": [
-    {
-      "id": "abc123",
-      "filename": "document.pdf",
-      "originalname": "document.pdf",
-      "size": 1024000,
-      "uploadDate": "2025-09-18T10:30:00.000Z",
-      "expiryDate": "2025-09-19T10:30:00.000Z",
-      "downloadUrl": "/files/abc123/document.pdf"
-    }
-  ]
-}</div>
-                </div>
-            </div>
-
-            <!-- Delete Files -->
-            <div class="pixel-card">
-                <div class="pixel-card-header">
-                    <h3>🗑️ Delete Files</h3>
-                    <p>Delete a specific file before it expires</p>
-                </div>
-                <div class="pixel-card-content">
-                    <div class="pixel-endpoint">
-                        <span class="pixel-method delete">DELETE</span>
-                        <code>/files/:id</code>
-                    </div>
-                    
-                    <h4>Request</h4>
-<div class="pixel-code">curl -X DELETE https://mabox.tech/files/abc123</div>
-
-                    <h4>Response</h4>
-<div class="pixel-code">{
-  "success": true,
-  "message": "File deleted successfully"
 }</div>
                 </div>
             </div>
