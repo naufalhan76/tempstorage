@@ -255,10 +255,9 @@ app.post('/upload', upload.single('file'), (req, res) => {
         const simple = req.body.simple === 'true' || req.query.simple === 'true';
         
         if (simple) {
-            // Simple response for automation tools like n8n
-            res.json({
-                url: downloadLink
-            });
+            // Simple response for automation tools like n8n - just the URL string
+            res.setHeader('Content-Type', 'text/plain');
+            res.send(downloadLink);
         } else {
             // Full response for web interface
             res.json({

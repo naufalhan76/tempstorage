@@ -415,7 +415,7 @@
                 <div class="pixel-card-content">
                     <ul class="pixel-list">
                         <li><strong>🔒 Secure Unique IDs:</strong> Files accessed via unpredictable 32-character hex IDs instead of filenames</li>
-                        <li><strong>🤖 Automation-Friendly:</strong> Simple response mode returns only download URL for n8n, Zapier, etc.</li>
+                        <li><strong>🤖 Automation-Friendly:</strong> Simple response mode returns plain text URL (not JSON) for n8n, Zapier, etc.</li>
                         <li><strong>📁 Original Filenames Preserved:</strong> Downloads use original filename while links remain secure</li>
                         <li><strong>⏰ Flexible TTL:</strong> Set custom expiration times from 30 minutes to 7 days</li>
                         <li><strong>📝 Custom Filenames:</strong> Override filename while preserving extension</li>
@@ -472,7 +472,7 @@
                                 <td><code>simple</code></td>
                                 <td>String</td>
                                 <td>❌ No</td>
-                                <td>Set to <code>"true"</code> for minimal response (automation-friendly). Returns only download URL.</td>
+                                <td>Set to <code>"true"</code> for plain text response. Returns URL string instead of JSON (perfect for automation).</td>
                             </tr>
                         </tbody>
                     </table>
@@ -518,9 +518,9 @@
 }</div>
 
                     <h4>Simple Response (when simple=true)</h4>
-<div class="pixel-code">{
-  "url": "https://mabox.tech/files/a5b3c8e9f1d2a4b6c7e8f9a0b1c2d3e4"
-}</div>
+                    <p><strong>Content-Type:</strong> <code>text/plain</code></p>
+<div class="pixel-code">https://mabox.tech/files/a5b3c8e9f1d2a4b6c7e8f9a0b1c2d3e4</div>
+                    <p><em>Note: Returns plain text URL string, perfect for automation tools that need direct access to the download link.</em></p>
                 </div>
             </div>
 
