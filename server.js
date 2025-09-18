@@ -33,7 +33,7 @@ app.use(express.static('public'));
 app.use('/icons', express.static('icons'));
 
 // Create uploads directory if it doesn't exist
-const uploadsDir = path.join(__dirname, 'uploads');
+const uploadsDir = process.env.UPLOAD_DIR || '/mnt/volume_sgp1_01/mabox_uploads';
 if (!fs.existsSync(uploadsDir)) {
     fs.mkdirSync(uploadsDir, { recursive: true });
 }
@@ -97,9 +97,9 @@ const fileFilter = (req, file, cb) => {
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, 'uploads/');
-    },
+  destination: (req, file, cb) => {
+      cb(null, uploadsDir);
+  },
     filename: (req, file, cb) => {
         // Temporary filename, we'll rename it later if needed
         const uniqueId = crypto.randomBytes(16).toString('hex');
@@ -214,14 +214,14 @@ app.post('/upload', upload.single('file'), (req, res) => {
         const nameWithoutExt = path.parse(finalFilename).name;
         const extension = path.parse(finalFilename).ext;
         
-        while (fs.existsSync(path.join('uploads', uniqueFilename)) || fileMetadata.has(uniqueFilename)) {
+        while (fs.existsSync(path.join(uploadsDir, uniqueFilename)) || fileMetadata.has(uniqueFilename)) {
             uniqueFilename = `${nameWithoutExt}(${counter})${extension}`;
             counter++;
         }
 
         // Rename the temporary file to final filename
         const tempPath = req.file.path;
-        const finalPath = path.join('uploads', uniqueFilename);
+        const finalPath = path.join(uploadsDir, uniqueFilename);
         fs.renameSync(tempPath, finalPath);
 
         const expiresAt = getExpirationTime(ttl);
