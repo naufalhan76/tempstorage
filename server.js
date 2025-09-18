@@ -113,7 +113,7 @@ const upload = multer({
     storage: storage,
     fileFilter: fileFilter,
     limits: {
-        fileSize: 1024 * 1024 * 1024 // 1GB limit
+        fileSize: 200 * 1024 * 1024 // 200MB limit
     }
 });
 
@@ -362,7 +362,7 @@ app.use((error, req, res, next) => {
         if (error.code === 'LIMIT_FILE_SIZE') {
             return res.status(400).json({
                 success: false,
-                message: 'File too large. Maximum size is 1GB.'
+                message: 'File too large. Maximum size is 200MB.'
             });
         }
     }
