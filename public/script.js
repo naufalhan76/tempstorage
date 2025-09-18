@@ -217,9 +217,6 @@ class FileUploadApp {
             this.fileSize.textContent = this.formatFileSize(file.size);
         }
         
-        // Update file icon based on file type
-        this.updateFileIcon(file.name, '.file-info .file-icon');
-        
         // Show file info, hide drop zone
         if (this.fileInfo) {
             this.fileInfo.style.display = 'block';
@@ -332,9 +329,6 @@ class FileUploadApp {
             this.resultExpiresAt.textContent = data.expiresAt ? 
                 new Date(data.expiresAt).toLocaleString() : 'Unknown';
         }
-        
-        // Update file icon based on file type
-        this.updateFileIcon(data.fileName || '');
         
         // Set the links correctly
         if (this.downloadLink) {
