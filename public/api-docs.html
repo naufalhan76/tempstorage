@@ -406,6 +406,24 @@
                 </div>
             </div>
 
+            <!-- Key Features -->
+            <div class="pixel-card">
+                <div class="pixel-card-header">
+                    <h3>🚀 Key Features</h3>
+                    <p>Latest improvements and automation-friendly features</p>
+                </div>
+                <div class="pixel-card-content">
+                    <ul class="pixel-list">
+                        <li><strong>🔒 Secure Unique IDs:</strong> Files accessed via unpredictable 32-character hex IDs instead of filenames</li>
+                        <li><strong>🤖 Automation-Friendly:</strong> Simple response mode returns only download URL for n8n, Zapier, etc.</li>
+                        <li><strong>📁 Original Filenames Preserved:</strong> Downloads use original filename while links remain secure</li>
+                        <li><strong>⏰ Flexible TTL:</strong> Set custom expiration times from 30 minutes to 7 days</li>
+                        <li><strong>📝 Custom Filenames:</strong> Override filename while preserving extension</li>
+                        <li><strong>🧹 Auto-Cleanup:</strong> Expired files automatically removed from storage</li>
+                    </ul>
+                </div>
+            </div>
+
             <!-- Upload Files -->
             <div class="pixel-card">
                 <div class="pixel-card-header">
@@ -450,6 +468,12 @@
                                 <td>❌ No</td>
                                 <td>Custom filename (will preserve original extension if not provided)</td>
                             </tr>
+                            <tr>
+                                <td><code>simple</code></td>
+                                <td>String</td>
+                                <td>❌ No</td>
+                                <td>Set to <code>"true"</code> for minimal response (automation-friendly). Returns only download URL.</td>
+                            </tr>
                         </tbody>
                     </table>
                     
@@ -474,7 +498,12 @@
   -F "ttl=7d" \
   -F "fileName=important-document.pdf"</div>
 
-                    <h4>Response</h4>
+                    <p><strong>Simple Response (For Automation Tools like n8n):</strong></p>
+<div class="pixel-code">curl -X POST https://mabox.tech/upload \
+  -F "file=@document.pdf" \
+  -F "simple=true"</div>
+
+                    <h4>Standard Response</h4>
 <div class="pixel-code">{
   "success": true,
   "message": "File uploaded successfully",
@@ -482,10 +511,15 @@
     "fileName": "document.pdf",
     "originalName": "document.pdf", 
     "fileSize": 1024000,
-    "downloadUrl": "https://mabox.tech/files/document.pdf",
+    "downloadUrl": "https://mabox.tech/files/a5b3c8e9f1d2a4b6c7e8f9a0b1c2d3e4",
     "expiresAt": "2025-09-19T10:30:00.000Z",
     "ttl": "30m"
   }
+}</div>
+
+                    <h4>Simple Response (when simple=true)</h4>
+<div class="pixel-code">{
+  "url": "https://mabox.tech/files/a5b3c8e9f1d2a4b6c7e8f9a0b1c2d3e4"
 }</div>
                 </div>
             </div>
@@ -494,23 +528,25 @@
             <div class="pixel-card">
                 <div class="pixel-card-header">
                     <h3>📥 Download Files</h3>
-                    <p>Download files using their unique ID</p>
+                    <p>Download files using their unique secure ID</p>
                 </div>
                 <div class="pixel-card-content">
                     <div class="pixel-endpoint">
                         <span class="pixel-method get">GET</span>
-                        <code>/files/:filename</code>
+                        <code>/files/:uniqueId</code>
                     </div>
                     
+                    <p><strong>Security Note:</strong> Files are accessed via unique, unpredictable IDs (32-character hex strings) rather than original filenames. This provides better security while preserving original filenames when downloaded.</p>
+                    
                     <h4>Request</h4>
-<div class="pixel-code">curl -X GET https://mabox.tech/files/document.pdf \
+<div class="pixel-code">curl -X GET https://mabox.tech/files/a5b3c8e9f1d2a4b6c7e8f9a0b1c2d3e4 \
   -o downloaded_document.pdf</div>
 
                     <h4>Response</h4>
                     <p>Returns the file content with appropriate headers:</p>
                     <ul>
                         <li><code>Content-Type</code>: Detected MIME type</li>
-                        <li><code>Content-Disposition</code>: attachment; filename="document.pdf"</li>
+                        <li><code>Content-Disposition</code>: attachment; filename="original-filename.pdf"</li>
                         <li><code>Content-Length</code>: File size in bytes</li>
                     </ul>
                 </div>
@@ -525,11 +561,11 @@
                 <div class="pixel-card-content">
                     <div class="pixel-endpoint">
                         <span class="pixel-method get">GET</span>
-                        <code>/info/:filename</code>
+                        <code>/info/:uniqueId</code>
                     </div>
                     
                     <h4>Request</h4>
-<div class="pixel-code">curl -X GET https://mabox.tech/info/document.pdf</div>
+<div class="pixel-code">curl -X GET https://mabox.tech/info/a5b3c8e9f1d2a4b6c7e8f9a0b1c2d3e4</div>
 
                     <h4>Response</h4>
 <div class="pixel-code">{

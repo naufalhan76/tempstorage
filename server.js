@@ -40,6 +40,8 @@ if (!fs.existsSync(uploadsDir)) {
 
 // In-memory storage for file metadata
 const fileMetadata = new Map();
+// Mapping from unique IDs to actual filenames
+const idToFilename = new Map();
 
 // Allowed file types and their MIME types
 const allowedFileTypes = {
@@ -165,7 +167,11 @@ function cleanExpiredFiles() {
             }
         });
 
-        // Remove from metadata
+        // Remove from metadata and ID mapping
+        const metadata = fileMetadata.get(filename);
+        if (metadata && metadata.uniqueId) {
+            idToFilename.delete(metadata.uniqueId);
+        }
         fileMetadata.delete(filename);
     });
 
@@ -226,30 +232,48 @@ app.post('/upload', upload.single('file'), (req, res) => {
 
         const expiresAt = getExpirationTime(ttl);
 
+        // Generate unique ID for secure download link
+        const uniqueId = crypto.randomBytes(16).toString('hex');
+        
         // Store metadata
         fileMetadata.set(uniqueFilename, {
             originalName: req.file.originalname,
             size: req.file.size,
             uploadedAt: Date.now(),
             expiresAt: expiresAt,
-            mimetype: req.file.mimetype
+            mimetype: req.file.mimetype,
+            uniqueId: uniqueId
         });
 
-        // Generate shareable link
-        const downloadLink = `https://mabox.tech/files/${uniqueFilename}`;
+        // Map unique ID to filename
+        idToFilename.set(uniqueId, uniqueFilename);
 
-        res.json({
-            success: true,
-            message: 'File uploaded successfully',
-            data: {
-                fileName: uniqueFilename,
-                originalName: req.file.originalname,
-                fileSize: req.file.size,
-                downloadUrl: downloadLink,
-                expiresAt: new Date(expiresAt).toISOString(),
-                ttl: ttl
-            }
-        });
+        // Generate secure shareable link
+        const downloadLink = `https://mabox.tech/files/${uniqueId}`;
+
+        // Check if request wants simple response (for automation tools)
+        const simple = req.body.simple === 'true' || req.query.simple === 'true';
+        
+        if (simple) {
+            // Simple response for automation tools like n8n
+            res.json({
+                url: downloadLink
+            });
+        } else {
+            // Full response for web interface
+            res.json({
+                success: true,
+                message: 'File uploaded successfully',
+                data: {
+                    fileName: uniqueFilename,
+                    originalName: req.file.originalname,
+                    fileSize: req.file.size,
+                    downloadUrl: downloadLink,
+                    expiresAt: new Date(expiresAt).toISOString(),
+                    ttl: ttl
+                }
+            });
+        }
 
     } catch (error) {
         console.error('Upload error:', error);
@@ -260,11 +284,22 @@ app.post('/upload', upload.single('file'), (req, res) => {
     }
 });
 
-// Download endpoint
-app.get('/files/:filename', (req, res) => {
+// Download endpoint - now accepts unique ID instead of filename
+app.get('/files/:idOrFilename', (req, res) => {
     try {
-        const filename = req.params.filename;
-        const metadata = fileMetadata.get(filename);
+        const idOrFilename = req.params.idOrFilename;
+        let actualFilename;
+        let metadata;
+
+        // First try as unique ID
+        if (idToFilename.has(idOrFilename)) {
+            actualFilename = idToFilename.get(idOrFilename);
+            metadata = fileMetadata.get(actualFilename);
+        } else {
+            // Fallback: try as direct filename for backward compatibility
+            actualFilename = idOrFilename;
+            metadata = fileMetadata.get(idOrFilename);
+        }
 
         // Check if file metadata exists
         if (!metadata) {
@@ -277,9 +312,12 @@ app.get('/files/:filename', (req, res) => {
         // Check if file has expired
         if (metadata.expiresAt < Date.now()) {
             // Clean up expired file
-            const filePath = path.join(uploadsDir, filename);
+            const filePath = path.join(uploadsDir, actualFilename);
             fs.unlink(filePath, () => {});
-            fileMetadata.delete(filename);
+            fileMetadata.delete(actualFilename);
+            if (metadata.uniqueId) {
+                idToFilename.delete(metadata.uniqueId);
+            }
 
             return res.status(410).json({ 
                 success: false, 
@@ -288,16 +326,19 @@ app.get('/files/:filename', (req, res) => {
         }
 
         // Check if physical file exists
-        const filePath = path.join(uploadsDir, filename);
+        const filePath = path.join(uploadsDir, actualFilename);
         if (!fs.existsSync(filePath)) {
-            fileMetadata.delete(filename);
+            fileMetadata.delete(actualFilename);
+            if (metadata.uniqueId) {
+                idToFilename.delete(metadata.uniqueId);
+            }
             return res.status(404).json({ 
                 success: false, 
                 message: 'File not found' 
             });
         }
 
-        // Set appropriate headers
+        // Set appropriate headers - use original filename for download
         res.setHeader('Content-Disposition', `attachment; filename="${metadata.originalName}"`);
         res.setHeader('Content-Type', metadata.mimetype);
         res.setHeader('Content-Length', metadata.size);
@@ -316,9 +357,20 @@ app.get('/files/:filename', (req, res) => {
 });
 
 // Get file info endpoint (optional)
-app.get('/info/:filename', (req, res) => {
-    const filename = req.params.filename;
-    const metadata = fileMetadata.get(filename);
+app.get('/info/:idOrFilename', (req, res) => {
+    const idOrFilename = req.params.idOrFilename;
+    let actualFilename;
+    let metadata;
+
+    // First try as unique ID
+    if (idToFilename.has(idOrFilename)) {
+        actualFilename = idToFilename.get(idOrFilename);
+        metadata = fileMetadata.get(actualFilename);
+    } else {
+        // Fallback: try as direct filename for backward compatibility
+        actualFilename = idOrFilename;
+        metadata = fileMetadata.get(idOrFilename);
+    }
 
     if (!metadata) {
         return res.status(404).json({ 
