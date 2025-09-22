@@ -62,7 +62,8 @@ const allowedFileTypes = {
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
     'text/csv': ['.csv'],
     'application/csv': ['.csv'],
-    'text/plain': ['.txt'],
+    'application/vnd.ms-excel': ['.csv'], // Some browsers send this for CSV
+    'text/plain': ['.txt', '.csv'], // Some browsers send CSV as text/plain
     
     // Archives
     'application/zip': ['.zip'],
@@ -79,18 +80,34 @@ const fileFilter = (req, file, cb) => {
     const extension = path.extname(file.originalname).toLowerCase();
     const mimeType = file.mimetype.toLowerCase();
     
+    console.log('File filter check:', {
+        filename: file.originalname,
+        extension: extension,
+        mimetype: mimeType
+    });
+    
     // Check if file extension is allowed
     if (allowedExtensions.includes(extension)) {
+        // For CSV files, be more lenient with MIME types
+        if (extension === '.csv') {
+            console.log('CSV file detected, allowing upload');
+            cb(null, true);
+            return;
+        }
+        
         // Double check with MIME type if available
         if (allowedFileTypes[mimeType] && allowedFileTypes[mimeType].includes(extension)) {
             cb(null, true);
         } else if (mimeType === 'application/octet-stream') {
             // Some files might have generic MIME type, allow based on extension
+            console.log('Generic MIME type, allowing based on extension');
             cb(null, true);
         } else {
+            console.log('MIME type mismatch, but allowing based on extension');
             cb(null, true); // Allow based on extension match
         }
     } else {
+        console.log('File extension not allowed:', extension);
         const error = new Error('File type not allowed. Only PDF, images (JPG, PNG, GIF, WebP, SVG, BMP, TIFF), DOCX, XLSX, CSV, ZIP, and RAR files are permitted.');
         error.code = 'INVALID_FILE_TYPE';
         cb(error, false);
@@ -192,13 +209,25 @@ app.get('/', (req, res) => {
 
 // Upload endpoint
 app.post('/upload', upload.single('file'), (req, res) => {
+    console.log('Upload request received');
+    console.log('Request file:', req.file ? 'File present' : 'No file');
+    console.log('Request body:', req.body);
+    
     try {
         if (!req.file) {
+            console.log('No file in request');
             return res.status(400).json({ 
                 success: false, 
                 message: 'No file uploaded' 
             });
         }
+
+        console.log('File info:', {
+            originalname: req.file.originalname,
+            mimetype: req.file.mimetype,
+            size: req.file.size,
+            filename: req.file.filename
+        });
 
         const { ttl, fileName } = req.body;
         

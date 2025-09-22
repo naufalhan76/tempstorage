@@ -163,10 +163,16 @@ class FileUploadApp {
         
         // Handle drop
         this.dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
             console.log('File dropped');
+            
             const files = e.dataTransfer.files;
             if (files.length > 0) {
+                console.log('Processing dropped file:', files[0].name);
                 this.handleFileSelection(files[0]);
+            } else {
+                console.log('No files in drop event');
             }
         });
         
@@ -208,6 +214,19 @@ class FileUploadApp {
         
         // Set current file
         this.currentFile = file;
+        
+        // Try to update file input to prevent validation issues
+        try {
+            // Create a DataTransfer object to simulate file input selection
+            const dataTransfer = new DataTransfer();
+            dataTransfer.items.add(file);
+            this.fileInput.files = dataTransfer.files;
+            console.log('File input updated successfully');
+        } catch (error) {
+            console.log('Could not update file input (older browser):', error);
+            // Remove required attribute as fallback
+            this.fileInput.removeAttribute('required');
+        }
         
         // Update UI
         if (this.fileName) {
@@ -276,7 +295,19 @@ class FileUploadApp {
                 body: formData
             });
             
-            const result = await response.json();
+            // Check if response is JSON
+            const contentType = response.headers.get('content-type');
+            let result;
+            
+            if (contentType && contentType.includes('application/json')) {
+                result = await response.json();
+            } else {
+                // If not JSON, probably an error page
+                const text = await response.text();
+                console.error('Server returned non-JSON response:', text);
+                throw new Error(`Server error: ${response.status} ${response.statusText}`);
+            }
+            
             console.log('Server response:', result);
             
             if (result.success) {
