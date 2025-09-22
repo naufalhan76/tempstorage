@@ -204,12 +204,21 @@ class FileUploadApp {
             return;
         }
         
-        // Validate file size (1GB)
-        const maxSize = 1024 * 1024 * 1024;
+        // Validate file size (check both app limit and likely server limit)
+        const maxSize = 1024 * 1024 * 1024; // 1GB app limit
+        const recommendedMaxSize = 100 * 1024 * 1024; // 100MB recommended for better reliability
+        
         if (file.size > maxSize) {
             this.showToast('File too large. Maximum size is 1GB.', 'error');
             this.clearFile();
             return;
+        }
+        
+        // Warn for large files that might hit server limits
+        if (file.size > recommendedMaxSize) {
+            const sizeMB = Math.round(file.size / (1024 * 1024));
+            console.warn(`Large file detected: ${sizeMB}MB. This might hit server upload limits.`);
+            this.showToast(`Large file (${sizeMB}MB) detected. Upload might fail due to server limits.`, 'warning');
         }
         
         // Set current file
@@ -305,7 +314,17 @@ class FileUploadApp {
                 // If not JSON, probably an error page
                 const text = await response.text();
                 console.error('Server returned non-JSON response:', text);
-                throw new Error(`Server error: ${response.status} ${response.statusText}`);
+                
+                // Handle specific nginx errors
+                if (response.status === 413) {
+                    throw new Error('File too large for server. Maximum allowed size may be smaller than expected. Please try a smaller file or contact administrator.');
+                } else if (response.status === 502 || response.status === 503) {
+                    throw new Error('Server temporarily unavailable. Please try again later.');
+                } else if (response.status === 500) {
+                    throw new Error('Internal server error. Please try again or contact administrator.');
+                } else {
+                    throw new Error(`Server error: ${response.status} ${response.statusText}`);
+                }
             }
             
             console.log('Server response:', result);
